@@ -3605,7 +3605,7 @@ ember-assign-polyfill@^2.0.1, ember-assign-polyfill@^2.6.0:
     ember-cli-babel "^6.16.0"
     ember-cli-version-checker "^2.0.0"
 
-ember-auto-import@^1.2.19:
+ember-auto-import@^1.2.19, ember-auto-import@^1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/ember-auto-import/-/ember-auto-import-1.4.0.tgz#9fee23cfe050e2221626ebb5ca30a91b03926064"
   integrity sha512-3OK37rFEQT3e0mjl1v7L3HHd9w0dWD+JqDjTnQFRNT0uhTeD2lq8k30r3w6HYtvJ1ish57ChdfxBLgGib8MTiA==
@@ -4745,6 +4745,11 @@ fake-xml-http-request@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/fake-xml-http-request/-/fake-xml-http-request-2.0.0.tgz#41a92f0ca539477700cb1dafd2df251d55dac8ff"
   integrity sha512-UjNnynb6eLAB0lyh2PlTEkjRJORnNsVF1hbzU+PQv89/cyBV9GDRCy7JAcLQgeCLYT+3kaumWWZKEJvbaK74eQ==
+
+faker@^4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/faker/-/faker-4.1.0.tgz#1e45bbbecc6774b3c195fad2835109c6d748cc3f"
+  integrity sha1-HkW7vsxndLPBlfrSg1EJxtdIzD8=
 
 fast-deep-equal@^2.0.1:
   version "2.0.1"
