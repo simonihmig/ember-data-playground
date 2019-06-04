@@ -1,0 +1,27 @@
+<BsForm
+  @model={{this}}
+  @formLayout="horizontal"
+  @onSubmit={{action this.submit}}
+  @novalidate={{true}}
+  as |form|
+>
+  <form.element
+    @property="firstName"
+    @label="First name"
+  />
+  <form.element
+    @property="lastName"
+    @label="Last name"
+  />
+  <form.element
+    @property="username"
+    @label="Username"
+  />
+  <form.element
+    @property="email"
+    @controlType="email"
+    @label="Email"
+  />
+
+  <BsButton @type="primary" @buttonType="submit">Save</BsButton>
+</BsForm>

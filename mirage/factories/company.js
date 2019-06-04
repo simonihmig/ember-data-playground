@@ -14,7 +14,7 @@ export default Factory.extend({
 
   withDepartmentsAndUsers: trait({
     afterCreate(company, server) {
-      server.createList('department', 5, { company }, 'withUsers');
+      server.createList('department', 2, { company }, 'withUsers');
     }
   })
 });

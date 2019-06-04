@@ -1,6 +1,6 @@
 'use strict';
 
-process.env.EMBER_VERSION = "OCTANE";
+// process.env.EMBER_VERSION = "OCTANE";
 
 module.exports = {
   /**

@@ -6,17 +6,26 @@
     <th>Last name</th>
     <th>Email</th>
     <th>Company</th>
+    <th></th>
   </tr>
   </thead>
   <tbody>
   {{#each this.users as |user|}}
-  {{log user.department}}
     <tr>
       <td>{{user.username}}</td>
       <td>{{user.firstName}}</td>
       <td>{{user.lastName}}</td>
       <td>{{user.email}}</td>
       <td>{{user.department.company.name}} / {{user.department.name}}</td>
+      <td>
+        {{#link-to "user.edit" user class="btn btn-secondary"}}Edit{{/link-to}}
+        <BsButton
+          @type="danger"
+          @onClick={{action this.delete user}}
+          @defaultText="Delete"
+          @pendingText="Deleting..."
+        />
+      </td>
     </tr>
   {{/each}}
   </tbody>
