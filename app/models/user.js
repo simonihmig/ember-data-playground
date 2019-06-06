@@ -1,5 +1,6 @@
 import DS from 'ember-data';
 const { Model, attr, belongsTo } = DS;
+import { computed } from '@ember/object';
 
 export default class UserModel extends Model {
   @belongsTo('department') department;
@@ -7,4 +8,10 @@ export default class UserModel extends Model {
   @attr('string') lastName;
   @attr('string') username;
   @attr('string') email;
+
+  @computed('firstName', 'lastName')
+  get fullName() {
+    return `${this.firstName} ${this.lastName}`;
+  }
+
 }
