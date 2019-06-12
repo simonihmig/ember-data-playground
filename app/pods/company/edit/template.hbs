@@ -1,6 +1,10 @@
-<h1>Edit "{{this.company.name}}"
+<h1>
+  Edit "{{this.company.name}}"
   {{#if this.company.hasDirtyAttributes}}
     <span class="badge badge-info ml-4 small">modified</span>
+  {{/if}}
+  {{#if this.company.isDeleted}}
+    <span class="badge badge-danger ml-4 small">deleted</span>
   {{/if}}
 </h1>
 

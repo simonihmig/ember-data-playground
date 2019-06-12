@@ -4114,6 +4114,13 @@ ember-cp-validations@^4.0.0-beta.8:
     ember-require-module "^0.3.0"
     ember-validators "^2.0.0"
 
+ember-data-cascade-delete@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/ember-data-cascade-delete/-/ember-data-cascade-delete-0.0.1.tgz#e968b2364480e8113b216f7ebee361ecf7b352b7"
+  integrity sha512-hBqf5UD7C9+MIq6dYlgeXjQI6Z47I2DgiRiKZ7U/0hFKr4wQqVEx8/eh3QMqp56RTxxfXpBQ0yQktXOOGTre/A==
+  dependencies:
+    ember-cli-babel "^6.3.0"
+
 ember-data@~3.10.0:
   version "3.10.0"
   resolved "https://registry.yarnpkg.com/ember-data/-/ember-data-3.10.0.tgz#b5f53a445ba1ee37890ec672b3dc3f869d8b3992"

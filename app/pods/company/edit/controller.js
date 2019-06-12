@@ -13,14 +13,14 @@ export default class CompanyEditController extends Controller {
       alert('saving was successfull!')
     }
     catch (e) {
-      alert(`An error occured: ${e.message}`);
+      alert(`An error occurred: ${e.message}`);
     }
   }
 
   @action
   async delete() {
     await this.company.destroyRecord();
-    // return this.transitionToRoute('company.index');
+    return this.transitionToRoute('company.index');
   }
 
 }

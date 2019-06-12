@@ -28,7 +28,16 @@ export default function() {
   this.get('/companies/:id');
   this.post('/companies');
   this.patch('/companies/:id');
-  this.del('/companies/:id');
+
+  // simulate the API doing a cascading delete ini Mirage!
+  this.del('/companies/:id', ({ companies }, request) => {
+    let id = request.params.id;
+    let company = companies.find(id);
+
+    company.departments.models.forEach(d => d.users.destroy());
+    company.departments.destroy();
+    company.destroy();
+  });
 
   this.get('/departments');
   this.get('/departments/:id');
