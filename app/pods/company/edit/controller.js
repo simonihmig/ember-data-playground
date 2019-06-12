@@ -23,4 +23,9 @@ export default class CompanyEditController extends Controller {
     return this.transitionToRoute('company.index');
   }
 
+  @action
+  addDepartment() {
+    let newDepartment = this.store.createRecord('department');
+    this.company.departments.pushObject(newDepartment);
+  }
 }

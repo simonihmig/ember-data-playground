@@ -29,8 +29,13 @@
       </BsForm>
     </li>
   {{/each}}
+  <li>
+    <BsButton
+      @defaultText="Add"
+      @onClick={{this.addDepartment}}
+    />
+  </li>
 </ol>
-
 
 <div>
   <BsButton
