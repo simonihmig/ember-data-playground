@@ -1,6 +1,10 @@
 import DS from 'ember-data';
+import { v4 } from 'uuid';
 
 export default class CascadingAdapter extends DS.JSONAPIAdapter {
+  generateIdForRecord() {
+    return v4();
+  }
 
   async deleteRecord(store, _, snapshot) {
     let { record } = snapshot;
@@ -11,7 +15,7 @@ export default class CascadingAdapter extends DS.JSONAPIAdapter {
     recordsToUnload.forEach((childRecord) => {
       store.unloadRecord(childRecord);
     });
-    relationshipsToClear.forEach(({ kind, key}) => {
+    relationshipsToClear.forEach(({ kind, key }) => {
       if (kind === 'hasMany') {
         record[key].clear();
       } else {
@@ -61,6 +65,5 @@ export default class CascadingAdapter extends DS.JSONAPIAdapter {
 
     return recordsToUnload.concat(childRecords);
   }
-
 
 }
