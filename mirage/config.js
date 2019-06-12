@@ -24,6 +24,18 @@ export default function() {
     http://www.ember-cli-mirage.com/docs/v0.4.x/shorthands/
   */
 
+  this.get('/companies');
+  this.get('/companies/:id');
+  this.post('/companies');
+  this.patch('/companies/:id');
+  this.del('/companies/:id');
+
+  this.get('/departments');
+  this.get('/departments/:id');
+  this.post('/departments');
+  this.patch('/departments/:id');
+  this.del('/departments/:id');
+
   this.get('/users');
   this.get('/users/:id');
   this.post('/users');
