@@ -8,11 +8,18 @@
   {{/if}}
 </h1>
 
+<p>Name "invalid" is forbidden and will be marked as a validation error by the backend.</p>
+
 <BsForm
   @model={{this.company}}
+  @formLayout="inline"
   as |form|
 >
   <form.element @property="name" @label="Name" />
+
+  {{#if this.company.errors.name.length}}
+    <span class="badge badge-warning ml-4">{{this.company.errors.name.firstObject.message}}</span>
+  {{/if}}
 </BsForm>
 
 <h2>Departments</h2>
@@ -25,6 +32,10 @@
 
         {{#if department.hasDirtyAttributes}}
           <span class="badge badge-info ml-4">modified</span>
+        {{/if}}
+
+        {{#if department.errors.name.length}}
+          <span class="badge badge-warning ml-4">{{department.errors.name.firstObject.message}}</span>
         {{/if}}
       </BsForm>
     </li>

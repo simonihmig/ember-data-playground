@@ -41,55 +41,89 @@ export default function() {
   });
 
   this.patch('/companies/:id', function (schema, request) {
-    try {
-      const company = JSON.parse(request.requestBody);
-      const departments = [];
-      const users = [];
+    const company = JSON.parse(request.requestBody);
+    const departments = [];
+    const users = [];
 
-      if (!company.data.relationships) {
-        company.data.relationships = {};
+    // Collect all departments and users
+    company.data.departments.forEach((department) => {
+      departments.push(department.data);
+
+      department.data.users.forEach((user) => {
+        users.push(user.data);
+      });
+    });
+
+    // Simulate a validation error.
+    // If some of record names are `"invalid"`, the save operation should fail
+    // and validation errors should be presented to the user.
+    const invalidRecords = [
+      ...(company.data.attributes.name === 'invalid' ? [company] : []),
+      ...departments.filterBy('attributes.name', 'invalid'),
+      ...users.filterBy('attributes.first-name', 'invalid'),
+    ];
+    if (invalidRecords.length) {
+      return new MirageResponse(422, {}, {
+        errors: invalidRecords.map(r => ({
+          id: r.id,
+          modelName: r.type,
+          attribute: r.type === 'users' ? 'first-name' : 'name',
+          message: 'Invalid value',
+        })),
+      });
+    }
+
+    // Convert payload from multi-level nesting into a regular one with `included`
+
+    if (!company.data.relationships) {
+      company.data.relationships = {};
+    }
+
+    company.data.relationships.departments = {data: []};
+
+    company.data.departments.forEach((department) => {
+      company.data.relationships.departments.data.push({id: department.data.id, type: department.data.type});
+
+      if (!department.data.relationships) {
+        department.data.relationships = {};
       }
 
-      company.data.relationships.departments = {data: []};
+      department.data.relationships.users = {data: []};
 
-      company.data.departments.forEach((department) => {
-        company.data.relationships.departments.data.push({id: department.data.id, type: department.data.type});
+      department.data.users.forEach((user) => {
+        department.data.relationships.users.data.push({id: user.data.id, type: user.data.type});
+        const userAttrs = this._getAttrsForRequest({requestBody: JSON.stringify(user)}, 'user');
 
-        if (!department.data.relationships) {
-          department.data.relationships = {};
-        }
-
-        department.data.relationships.users = {data: []};
-
-        department.data.users.forEach((user) => {
-          department.data.relationships.users.data.push({id: user.data.id, type: user.data.type});
-          const userAttrs = this._getAttrsForRequest({requestBody: JSON.stringify(user)}, 'user');
+        if (schema.db.users.find(userAttrs.id)) {
           schema.db.users.update(userAttrs.id, userAttrs);
-          users.push(user.data);
-        });
+        } else {
+          schema.users.create(userAttrs);
+        }
+      });
 
-        delete department.data.users;
+      delete department.data.users;
 
-        const departmentAttrs = this._getAttrsForRequest({requestBody: JSON.stringify(department)}, 'department');
+      const departmentAttrs = this._getAttrsForRequest({requestBody: JSON.stringify(department)}, 'department');
+
+      if (schema.db.departments.find(departmentAttrs.id)) {
         schema.db.departments.update(departmentAttrs.id, departmentAttrs);
-        departments.push(department.data);
-      });
+      } else {
+        schema.departments.create(departmentAttrs);
+      }
+    });
 
-      delete company.data.departments;
+    delete company.data.departments;
 
-      const companyAttrs = this._getAttrsForRequest({requestBody: JSON.stringify(company)}, 'company');
-      schema.db.companies.update(companyAttrs.id, companyAttrs);
+    const companyAttrs = this._getAttrsForRequest({requestBody: JSON.stringify(company)}, 'company');
+    schema.db.companies.update(companyAttrs.id, companyAttrs);
 
-      return new MirageResponse(200, {}, {
-        data: company.data,
-        included: [
-          ...departments.uniqBy('id'),
-          ...users.uniqBy('id'),
-        ],
-      });
-    } catch (e) {
-      debugger // eslint-disable-line
-    }
+    return new MirageResponse(200, {}, {
+      data: company.data,
+      included: [
+        ...departments.uniqBy('id'),
+        ...users.uniqBy('id'),
+      ],
+    });
   });
 
   this.get('/departments');
