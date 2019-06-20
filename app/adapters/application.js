@@ -23,23 +23,19 @@ export default class CascadingAdapter extends JSONAPIAdapter {
     // Clear relationships on deleted record
     const relationshipDescriptors = this._getCascadingRelationshipDescriptors(snapshot.record);
     relationshipDescriptors.forEach(({ kind, key }) => {
-      if (kind === 'hasMany') {
-        record.set(key, []);
-      } else {
-        record.set(key, null);
-      }
+      const value = kind === 'hasMany' ? [] : null;
+      record.set(key, value);
     });
 
     return response;
   }
 
   async updateRecord(store, type, snapshot) {
-    // This code block is only required for approach 1, which is commented out below.
-    // // Special case: using `record.save()` to mark a record as invalid without a network request
-    // if (snapshot.adapterOptions && snapshot.adapterOptions.errors) {
-    //   // https://api.emberjs.com/ember-data/3.10/classes/DS.InvalidError
-    //   return RSVP.reject(new InvalidError(snapshot.adapterOptions.errors));
-    // }
+    // Special case: using `record.save()` to mark a record as invalid without a network request
+    if (snapshot.adapterOptions && snapshot.adapterOptions.errors) {
+      // https://api.emberjs.com/ember-data/3.10/classes/DS.InvalidError
+      return RSVP.reject(new InvalidError(snapshot.adapterOptions.errors));
+    }
 
     // Special case: using `record.save()` to mark a record as saved without a network request
     if (snapshot.adapterOptions && snapshot.adapterOptions.dontPersist) {
@@ -53,103 +49,25 @@ export default class CascadingAdapter extends JSONAPIAdapter {
 
       // Look for nested record errors in the errors payload
       if (e.errors) {
-        const modelNamePlural = pluralize(dasherize(snapshot.modelName));
 
-        // // ---------- APPROACH 1 START
-        // // This approach is not working for some reason. `record.errors` is not populated like documentation says it should:
-        // // https://api.emberjs.com/ember-data/3.10/classes/DS.InvalidError
+        // Group errors by record
+        const {ownErrors, childRecordErrors} = this._groupErrorsByRecord(e, snapshot);
 
-        // // Group errors by record
-        // const otherErrors = {};
-        // e.errors.forEach(error => {
-        //   if (error.id && error.modelName && error.id !== snapshot.id && error.modelName !== modelNamePlural) {
-        //     if (!otherErrors[error.modelName]) {
-        //       otherErrors[error.modelName] = {};
-        //     }
-        //     if (!otherErrors[error.modelName][error.id]) {
-        //       otherErrors[error.modelName][error.id] = [];
-        //     }
-        //     otherErrors[error.modelName][error.id].push(error);
-        //   }
-        // });
+        // Apply errors to corresponding records
+        await this._applyErrorsToChildRecords(store, childRecordErrors);
 
-        // // Apply errors to corresponding records
-        // const saveWithErrorPromises = [];
-        // Object.keys(otherErrors).forEach(childModelNamePlural => {
-        //   Object.keys(otherErrors[childModelNamePlural]).forEach(id => {
-        //     const childModelNameSingular = singularize(childModelNamePlural);
-        //     const record = store.peekRecord(childModelNameSingular, id);
-
-        //     if (record) {
-        //       const promise = record.save({adapterOptions: {errors: otherErrors[childModelNamePlural][id]}});
-        //       saveWithErrorPromises.push(promise);
-        //     }
-        //   })
-        // });
-
-        // try {
-        //   await RSVP.all(saveWithErrorPromises);
-        // } catch(e) {
-        //   // expected to reject
-        // }
-
-        // // Keep only own errors in the payload.
-        // const remainingErrors = e.errors.filter(error => !error.id || (error.id === snapshot.id && error.modelName === modelNamePlural));
-        // return RSVP.reject(new InvalidError(remainingErrors));
-        // // ---------- APPROACH 1 END ----------------
-
-        // ---------- APPROACH 2 START ----------------
-        // Since the approach 1 does not populate `record.errors` for some reason, we're gonna populate them manually:
-
-        if (!e.errors.every(error => 'attribute' in error)) {
-          // Some errors are not validation erros. Can't rely on approach 2!
-          throw e;
-        }
-
-        // Reset validation errors on each record:
-        [
-          snapshot.record,
-          ...this._getCascadedRecords(store, snapshot.record),
-        ].forEach(record => {
-          record.eachAttribute((key) => {
-            record.errors.remove(key);
-          });
-        });
-
-        // Add errors to records. For some reason, doing this does not populate record.errors:
-        // https://api.emberjs.com/ember-data/3.10/classes/DS.InvalidError
-        e.errors.forEach(error => {
-          // Checking if the error is a validation error of a child record
-          if (error.attribute && error.id && error.id !== snapshot.id && error.modelName &&  error.modelName !== modelNamePlural) {
-            // Looking up child record
-            const childModelNameSingular = singularize(error.modelName);
-            const record = store.peekRecord(childModelNameSingular, error.id);
-
-            if (record) {
-              // Manually adding the error to a child record
-              record.errors.add(error.attribute, error.message);
-            }
-          } else {
-            // Manually adding the error to the current record
-            snapshot.record.errors.add(error.attribute, error.message);
-          }
-        });
-        // ---------- APPROACH 2 END ----------------
-
-        return RSVP.reject(new InvalidError());
+        // Keep only own errors in the payload
+        return RSVP.reject(new InvalidError(ownErrors));
       }
 
+      // Unknown error, simply throw it
       throw e;
     }
 
     // Marking child records as saved.
     // Though it is not required for exisitng records (they are somehow magically marked as saved automatically),
     // this is still needed for new child records.
-    this
-      ._getCascadedRecords(store, snapshot.record)
-      .forEach((record) => {
-        record.save({adapterOptions: {dontPersist: true}});
-      });
+    await this._markChildRecordsAsSaved(store, snapshot);
 
     return response;
   }
@@ -194,6 +112,75 @@ export default class CascadingAdapter extends JSONAPIAdapter {
     }, []);
 
     return recordsToUnload.addObjects(childRecords);
+  }
+
+  _groupErrorsByRecord(e, snapshot) {
+    const ownErrors = [];
+    const childRecordErrors = {};
+
+    const modelNamePlural = pluralize(dasherize(snapshot.modelName));
+
+    e.errors.forEach(error => {
+      if (
+        error.source
+        && error.source.identity
+        && error.source.identity.id
+        && error.source.identity.type
+        && (
+          error.source.identity.id !== snapshot.id
+          || error.source.identity.type !== modelNamePlural
+        )
+      ) {
+        const {id, type} = error.source.identity;
+
+        if (!childRecordErrors[type]) {
+          childRecordErrors[type] = {};
+        }
+
+        if (!childRecordErrors[type][id]) {
+          childRecordErrors[type][id] = [];
+        }
+
+        childRecordErrors[type][id].push(error);
+      } else {
+        ownErrors.push(error);
+      }
+    });
+
+    return {ownErrors, childRecordErrors};
+  }
+
+  async _applyErrorsToChildRecords(store, childRecordErrors) {
+    const promises = [];
+
+    Object.keys(childRecordErrors).forEach(childModelNamePlural => {
+      Object.keys(childRecordErrors[childModelNamePlural]).forEach(id => {
+        const childModelNameSingular = singularize(childModelNamePlural);
+        const record = store.peekRecord(childModelNameSingular, id);
+
+        if (record) {
+          const promise = record.save({adapterOptions: {errors: childRecordErrors[childModelNamePlural][id]}});
+          promises.push(promise);
+        }
+      });
+    });
+
+    try {
+      await RSVP.all(promises);
+    } catch(e) {
+      // expected to reject
+    }
+  }
+
+  _markChildRecordsAsSaved(store, snapshot) {
+    const promises =
+      this
+        ._getCascadedRecords(store, snapshot.record)
+        .map((record) => {
+          return record.save({adapterOptions: {dontPersist: true}});
+        });
+
+    return RSVP.all(promises);
   }
 
 }

@@ -183,18 +183,21 @@ module('Unit | Store | cascade', function(hooks) {
       let errors = company.errors.toArray();
       assert.equal(errors.length, 1, 'invalid company errors count');
       assert.equal(errors[0].attribute, 'name', 'invalid company error 0 attribute');
+      assert.equal(errors[0].message, 'This value is reserved', 'invalid company error 0 message');
 
       // invalid department
       const invalidDepartment = departments.findBy('name', 'invalid');
       errors = invalidDepartment.errors.toArray();
       assert.equal(errors.length, 1, 'invalid department errors count');
       assert.equal(errors[0].attribute, 'name', 'invalid department error 0 attribute');
+      assert.equal(errors[0].message, 'This value is reserved', 'invalid department error 0 message');
 
       // invalid department
       const invalidUser = users.findBy('firstName', 'invalid');
       errors = invalidUser.errors.toArray();
       assert.equal(errors.length, 1, 'invalid user errors count');
-      assert.equal(errors[0].attribute, 'first-name', 'invalid user error 0 attribute');
+      assert.equal(errors[0].attribute, 'firstName', 'invalid user error 0 attribute');
+      assert.equal(errors[0].message, 'This value is reserved', 'invalid user error 0 message');
     });
   });
 });

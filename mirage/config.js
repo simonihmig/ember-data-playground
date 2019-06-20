@@ -58,17 +58,21 @@ export default function() {
     // If some of record names are `"invalid"`, the save operation should fail
     // and validation errors should be presented to the user.
     const invalidRecords = [
-      ...(company.data.attributes.name === 'invalid' ? [company] : []),
+      ...(company.data.attributes.name === 'invalid' ? [company.data] : []),
       ...departments.filterBy('attributes.name', 'invalid'),
       ...users.filterBy('attributes.first-name', 'invalid'),
     ];
     if (invalidRecords.length) {
       return new MirageResponse(422, {}, {
         errors: invalidRecords.map(r => ({
-          id: r.id,
-          modelName: r.type,
-          attribute: r.type === 'users' ? 'first-name' : 'name',
-          message: 'Invalid value',
+          detail: 'This value is reserved',
+          source: {
+            identity: {
+              id: r.id,
+              type: r.type,
+            },
+            pointer: `/data/attributes/${r.type === 'users' ? 'first-name' : 'name'}`,
+          }
         })),
       });
     }
