@@ -43,6 +43,7 @@ export default class CascadingAdapter extends JSONAPIAdapter {
     }
 
     let response;
+
     try {
       response = await super.updateRecord(store, type, snapshot);
     } catch(e) {

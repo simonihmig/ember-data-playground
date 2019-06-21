@@ -64,7 +64,7 @@ module('Unit | Store | cascade', function(hooks) {
 
 
   module('save', function() {
-    test('it cascades into enabled relationships', async function(assert) {
+    test('it cascades into enabled relationships: modifying', async function(assert) {
       this.server.logging = true;
 
       const store = this.owner.lookup('service:store');
@@ -126,6 +126,52 @@ module('Unit | Store | cascade', function(hooks) {
       assert.equal(this.server.schema.users.all().models.filter(u => u.firstName !== 'foo').length, 0, 'users with original firstName on the backend side');
     });
 
+    test('it cascades into enabled relationships: adding a new child record', async function(assert) {
+      this.server.logging = true;
+
+      const store = this.owner.lookup('service:store');
+      const companyMirage = this.server.create('company', 'withDepartmentsAndUsers');
+      const company = await store.findRecord('company', companyMirage.id, { include: 'departments,departments.users'});
+      const departments = await store.findAll('department');
+      const users = await store.findAll('user');
+
+      // make sure our seeding is correct
+      assert.ok(company, 'company exists');
+      assert.ok(company.departments.length > 0, 'company has departments');
+      assert.equal(company.departments.filter(d => d.users.length === 0).length, 0, 'All departments have users');
+      assert.ok(departments.length > 0, 'global departments count is positive');
+      assert.ok(users.length > 0, 'global users count is positive');
+
+      // add a child
+      const department = store.createRecord('department');
+      company.departments.addObject(department);
+      departments.toArray().push(department);
+
+      // dispatch the save
+      await company.save();
+      await settled();
+
+      // company has been saved...
+      // client-side
+      assert.notOk(company.hasDirtyAttributes, 'company model hasDirtyAttributes');
+      assert.ok(company.isValid, 'company model is valid');
+      assert.equal(company.currentState.stateName, 'root.loaded.saved', 'company state');
+
+      // departments have been marked as saved...
+      // client-side
+      assert.equal(departments.filterBy('hasDirtyAttributes', true), 0, 'departments with dirty attributes count');
+      assert.equal(departments.filterBy('isValid', false), 0, 'invalid departments count');
+      assert.equal(departments.filter(d => d.currentState.stateName !== 'root.loaded.saved'), 0, 'departments with state other than saved');
+
+      assert.equal(this.server.schema.departments.all().models.length, departments.length, 'departments count on the backend side');
+
+      // users have been marked as saved...
+      // client-side
+      assert.equal(users.filterBy('hasDirtyAttributes', true), 0, 'users with dirty attributes count');
+      assert.equal(users.filterBy('isValid', false), 0, 'invalid users count');
+      assert.equal(users.filter(u => u.currentState.stateName !== 'root.loaded.saved'), 0, 'users with state other than saved');
+    });
+
     test('when parent save fails, child records contain errors', async function(assert) {
       this.server.logging = true;
 
@@ -171,11 +217,11 @@ module('Unit | Store | cascade', function(hooks) {
       assert.ok(company.hasDirtyAttributes, 'company model hasDirtyAttributes');
       assert.notOk(company.isValid, 'company model is isValid');
 
-      // departments have been marked as saved...
+      // departments not have been marked as saved...
       assert.equal(departments.filterBy('hasDirtyAttributes', false), 0, 'departments with clean attributes count');
       assert.equal(departments.filterBy('isValid', false).length, 1, 'invalid departments count');
 
-      // users have been marked as saved...
+      // users have not been marked as saved...
       assert.equal(users.filterBy('hasDirtyAttributes', false), 0, 'users with clean attributes count');
       assert.equal(users.filterBy('isValid', false).length, 1, 'invalid users count');
 
