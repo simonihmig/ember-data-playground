@@ -3,6 +3,7 @@ const { Model, attr, hasMany } = DS;
 
 export default class CompanyModel extends Model {
   @attr('string') name;
-  @hasMany('department', { cascadeDelete: true, async: false })
+
+  @hasMany('department', { cascade: true, async: false })
   departments;
 }
