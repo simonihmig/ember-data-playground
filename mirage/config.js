@@ -24,6 +24,27 @@ export default function() {
     http://www.ember-cli-mirage.com/docs/v0.4.x/shorthands/
   */
 
+  this.get('/companies');
+  this.get('/companies/:id');
+  this.post('/companies');
+  this.patch('/companies/:id');
+
+  // simulate the API doing a cascading delete ini Mirage!
+  this.del('/companies/:id', ({ companies }, request) => {
+    let id = request.params.id;
+    let company = companies.find(id);
+
+    company.departments.models.forEach(d => d.users.destroy());
+    company.departments.destroy();
+    company.destroy();
+  });
+
+  this.get('/departments');
+  this.get('/departments/:id');
+  this.post('/departments');
+  this.patch('/departments/:id');
+  this.del('/departments/:id');
+
   this.get('/users');
   this.get('/users/:id');
   this.post('/users');

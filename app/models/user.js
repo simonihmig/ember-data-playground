@@ -1,9 +1,10 @@
 import DS from 'ember-data';
+
 const { Model, attr, belongsTo } = DS;
 import { computed } from '@ember/object';
 
 export default class UserModel extends Model {
-  @belongsTo('department') department;
+  @belongsTo('department', { async: false }) department;
   @attr('string') firstName;
   @attr('string') lastName;
   @attr('string') username;

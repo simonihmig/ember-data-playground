@@ -4,5 +4,6 @@ const { Model, attr, belongsTo, hasMany } = DS;
 export default class DepartmentModel extends Model {
   @attr('string') name;
   @belongsTo('company') company;
-  @hasMany('users') users;
+  @hasMany('users', { cascadeDelete: true, async: false })
+  users;
 }

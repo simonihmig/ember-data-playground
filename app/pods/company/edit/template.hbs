@@ -1,0 +1,49 @@
+<h1>
+  Edit "{{this.company.name}}"
+  {{#if this.company.hasDirtyAttributes}}
+    <span class="badge badge-info ml-4 small">modified</span>
+  {{/if}}
+  {{#if this.company.isDeleted}}
+    <span class="badge badge-danger ml-4 small">deleted</span>
+  {{/if}}
+</h1>
+
+<BsForm
+  @model={{this.company}}
+  as |form|
+>
+  <form.element @property="name" @label="Name" />
+</BsForm>
+
+<h2>Departments</h2>
+
+<ol>
+  {{#each this.company.departments as |department|}}
+    <li>
+      <BsForm @model={{department}} @formLayout="inline" as |form|>
+        <form.element @property="name"   />
+
+        {{#if department.hasDirtyAttributes}}
+          <span class="badge badge-info ml-4">modified</span>
+        {{/if}}
+      </BsForm>
+    </li>
+  {{/each}}
+</ol>
+
+
+<div>
+  <BsButton
+    @type="primary"
+    @defaultText="Save"
+    @pendingText="Saving..."
+    @onClick={{this.save}}
+  />
+
+  <BsButton
+    @type="danger"
+    @defaultText="Delete"
+    @pendingText="Deleting..."
+    @onClick={{this.delete}}
+  />
+</div>
