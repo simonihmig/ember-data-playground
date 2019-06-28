@@ -142,10 +142,10 @@ module('Unit | Store | cascade', function(hooks) {
       assert.ok(departments.length > 0, 'global departments count is positive');
       assert.ok(users.length > 0, 'global users count is positive');
 
+      let previousDepartmentCount =  departments.length;
       // add a child
       const department = store.createRecord('department');
       company.departments.addObject(department);
-      departments.toArray().push(department);
 
       // dispatch the save
       await company.save();
@@ -162,6 +162,7 @@ module('Unit | Store | cascade', function(hooks) {
       assert.equal(departments.filterBy('hasDirtyAttributes', true), 0, 'departments with dirty attributes count');
       assert.equal(departments.filterBy('isValid', false), 0, 'invalid departments count');
       assert.equal(departments.filter(d => d.currentState.stateName !== 'root.loaded.saved'), 0, 'departments with state other than saved');
+      assert.equal(departments.length, previousDepartmentCount + 1, 'department has additional record');
 
       assert.equal(this.server.schema.departments.all().models.length, departments.length, 'departments count on the backend side');
 
