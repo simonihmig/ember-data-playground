@@ -49,15 +49,6 @@ module('Unit | Store | cascade', function(hooks) {
 
       // server-side
       assert.equal(this.server.schema.users.all().length, 0, 'No department records on backend');
-
-      // somehow when tearing down the test context store.unloadAll() is called which throws somehow related to our
-      // model unloading. We do it explicitly here and catch, so the test does not fail because of this.
-      try {
-        await store.unloadAll();
-      }
-      catch (e) {
-        console.error(e); // eslint-disable-line no-console
-      }
     });
   });
 

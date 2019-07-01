@@ -32,12 +32,26 @@ export default function() {
 
   // simulate the API doing a cascading delete ini Mirage!
   this.del('/companies/:id', (schema, request) => {
-    let id = request.params.id;
+    let {id} = request.params;
     let company = schema.companies.find(id);
 
-    company.departments.models.forEach(d => d.users.destroy());
-    company.departments.destroy();
+    // This is supposed to be done intelligently on the backend, but for the sake of demo
+    // relationships are hardcoded here
+    const departments = company.departments.models.toArray();
+    const users =
+      departments
+        .map(department => department.users.models.toArray())
+        .reduce((a, b) => a.concat(b), []); // flatten
+
+    const identities =
+      [...departments, ...users]
+        .map(record => ({id: record.id, type: record.modelName}))
+
     company.destroy();
+    departments.forEach(department => department.destroy());
+    users.forEach(user => user.destroy());
+
+    return {deleted: identities};
   });
 
   this.patch('/companies/:id', function (schema, request) {

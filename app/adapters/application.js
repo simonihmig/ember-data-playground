@@ -11,23 +11,27 @@ export default class CascadingAdapter extends JSONAPIAdapter {
   }
 
   async deleteRecord(store, _, snapshot) {
-    const { record } = snapshot;
+    // Special case: using `record.destroyRecord()` to delete a record without a network request
+    if (snapshot.adapterOptions && snapshot.adapterOptions.dontPersist) {
+      return;
+    }
+
     const response = await super.deleteRecord(store, _, snapshot);
 
-    // Unload cascaded records
-    const recordsToUnload = this._getCascadedRecords(store, snapshot.record);
-    recordsToUnload.forEach((childRecord) => {
-      store.unloadRecord(childRecord);
-    });
+    const {deleted} = response;
+    delete response.deleted;
 
-    // Clear relationships on deleted record
-    const relationshipDescriptors = this._getCascadingRelationshipDescriptors(snapshot.record);
-    relationshipDescriptors.forEach(({ kind, key }) => {
-      const value = kind === 'hasMany' ? [] : null;
-      record.set(key, value);
-    });
+    if (deleted && deleted.length) {
+      for (let {id, type} of deleted) {
+        const childModelNameSingularDasherized = singularize(dasherize(type));
+        const record = store.peekRecord(childModelNameSingularDasherized, id);
 
-    return response;
+        if (record) {
+          await record.destroyRecord({adapterOptions: {dontPersist: true}});
+          store.unloadRecord(record);
+        }
+      }
+    }
   }
 
   async updateRecord(store, type, snapshot) {
@@ -73,13 +77,13 @@ export default class CascadingAdapter extends JSONAPIAdapter {
     return response;
   }
 
-  _getCascadingRelationshipDescriptors(record) {
+  _getCascadingRelationshipDescriptors(record, option) {
     let relationships = [];
 
     record.eachRelationship((name, descriptor) => {
       let { options } = descriptor;
 
-      if (options.cascade) {
+      if (options[option]) {
         relationships.push(descriptor);
       }
     });
@@ -87,9 +91,9 @@ export default class CascadingAdapter extends JSONAPIAdapter {
     return relationships;
   }
 
-  _getCascadedRecords(store, record) {
-    const relationshipsToClear = this._getCascadingRelationshipDescriptors(record);
-    const recordsToUnload = relationshipsToClear.reduce((result, {kind, key}) => {
+  _getCascadedRecords(store, record, option) {
+    const cascadingRelationships = this._getCascadingRelationshipDescriptors(record, option);
+    const records = cascadingRelationships.reduce((result, {kind, key}) => {
       if (kind === 'hasMany') {
         let hasManyRecordsArray = [];
         let hasManyRecords = record.hasMany(key).value();
@@ -107,12 +111,12 @@ export default class CascadingAdapter extends JSONAPIAdapter {
       return result;
     }, []);
 
-    const childRecords = recordsToUnload.reduce((result, childRecord) => {
-      const childRecordsToUnload = this._getCascadedRecords(store, childRecord);
+    const childRecords = records.reduce((result, childRecord) => {
+      const childRecordsToUnload = this._getCascadedRecords(store, childRecord, option);
       return result.addObjects(childRecordsToUnload);
     }, []);
 
-    return recordsToUnload.addObjects(childRecords);
+    return records.addObjects(childRecords);
   }
 
   _groupErrorsByRecord(e, snapshot) {
@@ -156,8 +160,8 @@ export default class CascadingAdapter extends JSONAPIAdapter {
 
     Object.keys(childRecordErrors).forEach(childModelNamePlural => {
       Object.keys(childRecordErrors[childModelNamePlural]).forEach(id => {
-        const childModelNameSingular = singularize(childModelNamePlural);
-        const record = store.peekRecord(childModelNameSingular, id);
+        const childModelNameSingularDasherized = singularize(dasherize(childModelNamePlural));
+        const record = store.peekRecord(childModelNameSingularDasherized, id);
 
         if (record) {
           const promise = record.save({adapterOptions: {errors: childRecordErrors[childModelNamePlural][id]}});
@@ -176,7 +180,7 @@ export default class CascadingAdapter extends JSONAPIAdapter {
   _markChildRecordsAsSaved(store, snapshot) {
     const promises =
       this
-        ._getCascadedRecords(store, snapshot.record)
+        ._getCascadedRecords(store, snapshot.record, 'cascadeSave')
         .map((record) => {
           return record.save({adapterOptions: {dontPersist: true}});
         });

@@ -4,6 +4,6 @@ const { Model, attr, hasMany } = DS;
 export default class CompanyModel extends Model {
   @attr('string') name;
 
-  @hasMany('department', { cascade: true, async: false })
+  @hasMany('department', { cascadeSave: true, async: false })
   departments;
 }

@@ -6,6 +6,6 @@ export default class DepartmentModel extends Model {
 
   @belongsTo('company', { async: false }) company;
 
-  @hasMany('users', { cascade: true, async: false })
+  @hasMany('users', { cascadeSave: true, async: false })
   users;
 }
