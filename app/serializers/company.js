@@ -1,7 +1,6 @@
-import JSONAPISerializer from 'ember-data/serializers/json-api';
-import EmbeddedRecordsMixin from 'ember-data/serializers/embedded-records-mixin';
+import ApplicationSerializer from './application';
 
-export default class CompanySerializer extends JSONAPISerializer.extend(EmbeddedRecordsMixin) {
+export default class CompanySerializer extends ApplicationSerializer {
   attrs = {
     departments: {
       serialize: 'records',
