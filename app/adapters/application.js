@@ -18,10 +18,10 @@ export default class CascadingAdapter extends JSONAPIAdapter {
 
     const response = await super.deleteRecord(store, _, snapshot);
 
-    const {deleted} = response;
-    delete response.deleted;
+    if (response && response.deleted) {
+      const {deleted} = response;
+      delete response.deleted;
 
-    if (deleted && deleted.length) {
       for (let {id, type} of deleted) {
         const childModelNameSingularDasherized = singularize(dasherize(type));
         const record = store.peekRecord(childModelNameSingularDasherized, id);

@@ -50,6 +50,37 @@ module('Unit | Store | cascade', function(hooks) {
       // server-side
       assert.equal(this.server.schema.users.all().length, 0, 'No department records on backend');
     });
+
+    test('it updates orphaned relationships on remaining records', async function(assert) {
+      const store = this.owner.lookup('service:store');
+      const companyMirage = this.server.create('company');
+      const departmentMirage = this.server.create('department', {company: companyMirage});
+      const company = await store.findRecord('company', companyMirage.id, { include: 'departments'});
+      const department = await store.findRecord('department', departmentMirage.id);
+      await settled();
+
+      // dispatch the deletion
+      await department.destroyRecord();
+      await settled();
+
+      // department has been deleted...
+      // client-side
+      assert.ok(department.isDeleted, 'company model has been deleted');
+      assert.ok(department.isValid, 'company model is valid');
+
+      // server-side
+      assert.equal(this.server.schema.departments.all().length, 0, 'No department record on backend');
+
+      // company is not deleted...
+      // client-side
+      assert.notOk(company.isDeleted, 'company model has not been deleted');
+      assert.ok(company.isValid, 'company model is valid');
+      assert.equal(company.departments.length, 0, 'company no longer contains the department');
+
+      // server-side
+      assert.equal(this.server.schema.companies.all().length, 1, 'Company record still on backend');
+      assert.equal(this.server.schema.companies.find(companyMirage.id).departments.models.length, 0, 'Company on the backend has no departments');
+    });
   });
 
 
