@@ -51,13 +51,26 @@ module('Unit | Store | cascade', function(hooks) {
       assert.equal(this.server.schema.users.all().length, 0, 'No department records on backend');
     });
 
+
+
     test('it updates orphaned relationships on remaining records', async function(assert) {
       const store = this.owner.lookup('service:store');
       const companyMirage = this.server.create('company');
       const departmentMirage = this.server.create('department', {company: companyMirage});
-      const company = await store.findRecord('company', companyMirage.id, { include: 'departments'});
-      const department = await store.findRecord('department', departmentMirage.id);
+      const userMirage = this.server.create('user', {company: companyMirage, department: departmentMirage});
+
+      const company = await store.findRecord('company', companyMirage.id, {include: 'departments,users'});
+      const department = await store.findRecord('department', departmentMirage.id, {include: 'company,users'});
+      const user = await store.findRecord('user', userMirage.id, {include: 'company,department'});
       await settled();
+
+      // make sure our seeding is correct
+      assert.ok(company, 'company exists');
+      assert.equal(company.departments.length, 1, 'company.departments.length');
+      assert.equal(company.users.length, 1, 'company.users.length');
+      assert.equal(department.users.length, 1, 'department.users');
+      assert.equal(user.company, company, 'user.company');
+      assert.equal(user.department, department, 'user.department');
 
       // dispatch the deletion
       await department.destroyRecord();
@@ -65,21 +78,24 @@ module('Unit | Store | cascade', function(hooks) {
 
       // department has been deleted...
       // client-side
-      assert.ok(department.isDeleted, 'company model has been deleted');
-      assert.ok(department.isValid, 'company model is valid');
+      assert.ok(department.isDeleted, 'department model has been deleted');
+      assert.ok(department.isValid, 'department model is valid');
 
       // server-side
       assert.equal(this.server.schema.departments.all().length, 0, 'No department record on backend');
+      assert.equal(this.server.schema.users.all().length, 0, 'No user record on backend');
 
       // company is not deleted...
       // client-side
       assert.notOk(company.isDeleted, 'company model has not been deleted');
       assert.ok(company.isValid, 'company model is valid');
       assert.equal(company.departments.length, 0, 'company no longer contains the department');
+      assert.equal(company.users.length, 0, 'company no longer contains the user');
 
       // server-side
       assert.equal(this.server.schema.companies.all().length, 1, 'Company record still on backend');
       assert.equal(this.server.schema.companies.find(companyMirage.id).departments.models.length, 0, 'Company on the backend has no departments');
+      assert.equal(this.server.schema.companies.find(companyMirage.id).users.models.length, 0, 'Company on the backend has no users');
     });
   });
 
