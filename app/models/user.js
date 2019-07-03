@@ -9,8 +9,11 @@ export default class UserModel extends Model {
   @attr('string') username;
   @attr('string') email;
 
-  @belongsTo('department', { async: false })
+  @belongsTo('department', { async: false, inverse: 'users' })
   department;
+
+  @belongsTo('company', { async: false, inverse: 'users' })
+  company;
 
   @computed('firstName', 'lastName')
   get fullName() {
