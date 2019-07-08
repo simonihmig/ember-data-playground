@@ -51,9 +51,9 @@ module('Unit | Store | cascade', function(hooks) {
       assert.equal(this.server.schema.users.all().length, 0, 'No department records on backend');
     });
 
-
-
     test('it updates orphaned relationships on remaining records', async function(assert) {
+      this.server.logging = true;
+
       const store = this.owner.lookup('service:store');
       const companyMirage = this.server.create('company');
       const departmentMirage = this.server.create('department', {company: companyMirage});
@@ -98,8 +98,6 @@ module('Unit | Store | cascade', function(hooks) {
       assert.equal(this.server.schema.companies.find(companyMirage.id).users.models.length, 0, 'Company on the backend has no users');
     });
   });
-
-
 
   module('save', function() {
     test('it cascades into enabled relationships: modifying', async function(assert) {
